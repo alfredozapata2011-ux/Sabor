@@ -45,3 +45,35 @@ button:active,
     min-height: 44px;
   }
 }
+
+
+/* Sabor Divino - Bordes más redondos */
+
+.card,
+.stat-card,
+.summary-card,
+.panel,
+.modal,
+.sidebar,
+.hero,
+input,
+select,
+textarea {
+  border-radius: 24px;
+}
+
+button,
+.btn,
+.nav-link {
+  border-radius: 18px;
+}
+
+@media (max-width: 700px) {
+  .card,
+  .stat-card,
+  .summary-card,
+  .panel,
+  .modal {
+    border-radius: 28px;
+  }
+}
