@@ -1,0 +1,13 @@
+{
+  "name": "Sabor Divino Servicio Exprés",
+  "short_name": "Sabor Divino",
+  "description": "Gestión de inventario y ventas de Sabor Divino Servicio Exprés",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#101c46",
+  "icons": [
+    { "src": "/logo-sabor-divino.jpeg", "sizes": "any", "type": "image/jpeg", "purpose": "any maskable" }
+  ]
+}
