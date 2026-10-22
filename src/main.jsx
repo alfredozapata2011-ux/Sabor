@@ -1,6 +1,95 @@
 import React, { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
+
+import { supabase } from './supabase.js';
+import { useEffect } from 'react';
+
+function Login({ onLogin }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      onLogin(data.session);
+    }
+
+    setLoading(false);
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'grid',
+      placeItems: 'center',
+      background: '#101827',
+      padding: 20
+    }}>
+      <form onSubmit={handleLogin} style={{
+        background: '#ffffff',
+        padding: 30,
+        borderRadius: 20,
+        width: '100%',
+        maxWidth: 380
+      }}>
+        <h1 style={{ color: '#172554' }}>
+          Sabor Divino
+        </h1>
+        <p style={{ color: '#555' }}>
+          Iniciar sesión
+        </p>
+
+        <input
+          type="email"
+          placeholder="Correo electrónico"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+          style={{ width: '100%', padding: 12, marginBottom: 12 }}
+        />
+
+        <input
+          type="password"
+          placeholder="Contraseña"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+          style={{ width: '100%', padding: 12, marginBottom: 12 }}
+        />
+
+        {error && (
+          <p style={{ color: 'red' }}>{error}</p>
+        )}
+
+        <button type="submit" disabled={loading} style={{
+          width: '100%',
+          padding: 14,
+          background: '#2563eb',
+          color: 'white',
+          border: 0,
+          borderRadius: 10
+        }}>
+          {loading ? 'Entrando...' : 'Entrar'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 import './register-sw.js';
 
 const initialArticles = [
@@ -20,6 +109,24 @@ const nav = [
   { id: 'usuarios', icon: '♙', label: 'Usuarios' },
 ];
 function App() {
+  
+  const [session, setSession] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setCheckingAuth(false);
+    });
+
+    const { data: listener } =
+      supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session);
+      });
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
   const [section, setSection] = useState('inicio');
   const [articles, setArticles] = useState(() => { try { return JSON.parse(localStorage.getItem('sd-articles')) || initialArticles; } catch { return initialArticles; } });
   const [purchases, setPurchases] = useState([]);
@@ -53,6 +160,15 @@ function App() {
   function addUser(e) { e.preventDefault(); if(!userForm.name.trim())return; setUsers([...users,{id:Date.now(),...userForm}]); setUserForm({name:'',role:'Usuario simple'}); flash('Usuario de demostración añadido. El acceso real requiere Supabase.'); }
   function saveSales(e) { e.preventDefault(); flash('Ventas guardadas solo en esta sesión de prueba.'); }
   function downloadCsv() { const rows=[['Artículo','Unidad','Existencias','Mínimo'],...stockRows.map(a=>[a.name,a.unit,a.stock,a.minimum])]; const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n'); const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'})); const a=document.createElement('a'); a.href=url; a.download='sabor-divino-inventario.csv'; a.click(); URL.revokeObjectURL(url); }
+  
+if (checkingAuth) {
+  return <div>Verificando sesión...</div>;
+}
+
+if (!session) {
+  return <Login onLogin={setSession} />;
+}
+
   return <div className="app-shell">
     <aside className={`sidebar ${mobileNav?'open':''}`}>
       <div className="brand"><img src="/logo-sabor-divino.jpeg" alt="Logo Sabor Divino"/><div><strong>Sabor Divino</strong><span>Servicio Exprés</span></div><button className="close-nav" onClick={()=>setMobileNav(false)}>×</button></div>
