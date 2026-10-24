@@ -128,7 +128,51 @@ function App() {
   }, []);
 
   const [section, setSection] = useState('inicio');
-  const [articles, setArticles] = useState(() => { try { return JSON.parse(localStorage.getItem('sd-articles')) || initialArticles; } catch { return initialArticles; } });
+  const [articles, setArticles] = useState([]);
+const [loadingArticles, setLoadingArticles] = useState(true);
+  useEffect(() => {
+  if (!session) {
+    setArticles([]);
+    setLoadingArticles(false);
+    return;
+  }
+
+  let active = true;
+
+  async function cargarArticulos() {
+    setLoadingArticles(true);
+
+    const { data, error } = await supabase
+      .from('articulos')
+      .select('id, nombre, unidad, stock_actual, stock_minimo')
+      .order('nombre');
+
+    if (!active) return;
+
+    if (error) {
+      console.error('Error cargando artículos:', error);
+      setToast('Error al cargar artículos desde Supabase.');
+    } else {
+      setArticles(
+        data.map(a => ({
+          id: a.id,
+          name: a.nombre,
+          unit: a.unidad,
+          stock: Number(a.stock_actual || 0),
+          minimum: Number(a.stock_minimo || 0)
+        }))
+      );
+    }
+
+    setLoadingArticles(false);
+  }
+
+  cargarArticulos();
+
+  return () => {
+    active = false;
+  };
+}, [session]);
   const [purchases, setPurchases] = useState([]);
   const [payments, setPayments] = useState([]);
   const [dishes, setDishes] = useState([]);
@@ -147,12 +191,73 @@ function App() {
   const [mobileNav, setMobileNav] = useState(false);
   const [role, setRole] = useState('Administrador');
   const flash = (msg) => { setToast(msg); window.setTimeout(() => setToast(''), 3000); };
-  const persistArticles = (next) => { setArticles(next); localStorage.setItem('sd-articles', JSON.stringify(next)); };
+  
+async function persistArticles(next) {
+  const nuevos = next.filter(a => !articles.some(actual => actual.id === a.id));
+
+  if (nuevos.length !== 1 || next.length !== articles.length + 1) {
+    flash('Esta operación todavía no está conectada a Supabase.');
+    return;
+  }
+
+  const articulo = nuevos[0];
+
+  const { data, error } = await supabase
+    .from('articulos')
+    .insert({
+      nombre: articulo.name,
+      unidad: articulo.unit,
+      stock_actual: Number(articulo.stock || 0),
+      stock_minimo: Number(articulo.minimum || 0)
+    })
+    .select('id, nombre, unidad, stock_actual, stock_minimo')
+    .single();
+
+  if (error) {
+    console.error(error);
+    flash('No se pudo guardar el artículo en Supabase.');
+    return;
+  }
+
+  setArticles(prev => [...prev, {
+    id: data.id,
+    name: data.nombre,
+    unit: data.unidad,
+    stock: Number(data.stock_actual || 0),
+    minimum: Number(data.stock_minimo || 0)
+  }]);
+
+  flash('Artículo guardado en Supabase.');
+}
+
   const stockRows = useMemo(() => articles.map(a => ({...a, stock: Number(a.stock || 0) + purchases.filter(p=>p.article===a.name).reduce((s,p)=>s+Number(p.quantity||0),0)})), [articles,purchases]);
   const totalSales = Object.values(sales).reduce((sum, row) => sum + (row.qty * row.price), 0);
   const totalPurchases = purchases.reduce((s,p)=>s + p.total,0);
   const title = nav.find(n=>n.id===section)?.label || 'Inicio';
-  function addArticle(e) { e.preventDefault(); if (!articleForm.name.trim()) return; persistArticles([...articles,{id:Date.now(),name:articleForm.name.trim(),unit:articleForm.unit,stock:0,minimum:Number(articleForm.minimum)||0}]); setArticleForm({name:'',unit:'lb',minimum:'0'}); flash('Artículo añadido en este dispositivo.'); }
+  
+async function addArticle(e) {
+  e.preventDefault();
+
+  if (!articleForm.name.trim()) return;
+
+  await persistArticles([
+    ...articles,
+    {
+      id: crypto.randomUUID(),
+      name: articleForm.name.trim(),
+      unit: articleForm.unit,
+      stock: 0,
+      minimum: Number(articleForm.minimum) || 0
+    }
+  ]);
+
+  setArticleForm({
+    name: '',
+    unit: 'lb',
+    minimum: '0'
+  });
+}
+
   function addPurchase(e) { e.preventDefault(); if (!purchaseForm.article || !purchaseForm.quantity || !purchaseForm.price) return; const base=Number(purchaseForm.price), rate=Number(purchaseForm.taxRate)||0; let tax=0,total=base; if(purchaseForm.taxMode==='extra'){tax=base*rate/100;total=base+tax;} else if(purchaseForm.taxMode==='included'){tax=base-(base/(1+rate/100));} setPurchases([...purchases,{...purchaseForm,id:Date.now(),quantity:Number(purchaseForm.quantity),price:base,tax,total}]); setPurchaseForm({...purchaseForm,quantity:'',price:''}); flash('Compra añadida en esta sesión.'); }
   function addPayment(e) { e.preventDefault(); if(!paymentForm.reason || !paymentForm.amount) return; setPayments([...payments,{...paymentForm,id:Date.now(),amount:Number(paymentForm.amount)}]); setPaymentForm({...paymentForm,amount:'',description:''}); flash('Pago añadido en esta sesión.'); }
   function addDish(e) { e.preventDefault(); if(!dishForm.name.trim())return; setDishes([...dishes,{...dishForm,id:Date.now(),price:Number(dishForm.price)||0,recipe:[]}]); setDishForm({name:'',price:''}); flash('Plato añadido en esta sesión.'); }
