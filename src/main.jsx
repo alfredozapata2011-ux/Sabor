@@ -283,7 +283,19 @@ if (!session) {
     </aside>
     {mobileNav && <button className="scrim" aria-label="Cerrar menú" onClick={()=>setMobileNav(false)} />}
     <main className="main-area">
-      <header className="topbar"><button className="menu-toggle" onClick={()=>setMobileNav(true)}>☰</button><div className="crumb">Sabor Divino <span>/</span> <b>{title}</b></div><div className="top-actions"><span className="status-pill"><i></i> Vista previa</span><div className="avatar">{role==='Administrador'?'AD':'US'}</div><select aria-label="Vista de rol" value={role} onChange={e=>setRole(e.target.value)}><option>Administrador</option><option>Usuario simple</option></select></div></header>
+      <header className="topbar"><button className="menu-toggle" onClick={()=>setMobileNav(true)}>☰</button><div className="crumb">Sabor Divino <span>/</span> <b>{title}</b></div><div className="top-actions"><button
+  type="button"
+  onClick={async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      alert('Error al cerrar sesión: ' + error.message);
+    } else {
+      setSession(null);
+    }
+  }}
+>
+  Cerrar sesión
+</button><span className="status-pill"><i></i> Vista previa</span><div className="avatar">{role==='Administrador'?'AD':'US'}</div><select aria-label="Vista de rol" value={role} onChange={e=>setRole(e.target.value)}><option>Administrador</option><option>Usuario simple</option></select></div></header>
       <div className="content">
         <div className="page-heading"><div><div className="eyebrow">SABOR DIVINO · SERVICIO EXPRÉS</div><h1>{section==='inicio'?'Buenos días 👋':title}</h1><p>{section==='inicio'?'Aquí tienes el resumen de la operación de tu negocio.':'Administra la información de tu negocio desde un solo lugar.'}</p></div><div className="today">{new Date().toLocaleDateString('es-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</div></div>
         {section==='inicio' && <>
