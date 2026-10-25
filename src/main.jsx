@@ -259,6 +259,44 @@ useEffect(() => {
   cargarPagos();
 }, [session]);
   const [dishes, setDishes] = useState([]);
+  
+useEffect(() => {
+  if (!session) {
+    setDishes([]);
+    return;
+  }
+
+  let active = true;
+
+  async function cargarMenu() {
+    const { data, error } = await supabase
+      .from('menu')
+      .select('id, nombre, precio')
+      .order('nombre');
+
+    if (!active) return;
+
+    if (error) {
+      console.error('Error cargando menú:', error);
+      flash('Error al cargar el menú.');
+      return;
+    }
+
+    setDishes((data || []).map(plato => ({
+      id: plato.id,
+      name: plato.nombre,
+      price: Number(plato.precio || 0),
+      recipe: []
+    })));
+  }
+
+  cargarMenu();
+
+  return () => {
+    active = false;
+  };
+}, [session]);
+
   const [suppliers, setSuppliers] = useState([]);
   useEffect(() => {
   if (!session) {
