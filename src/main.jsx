@@ -633,7 +633,35 @@ async function addDish(e) {
   flash('Proveedor guardado en Supabase.');
 }
   function addUser(e) { e.preventDefault(); if(!userForm.name.trim())return; setUsers([...users,{id:Date.now(),...userForm}]); setUserForm({name:'',role:'Usuario simple'}); flash('Usuario de demostración añadido. El acceso real requiere Supabase.'); }
-  function saveSales(e) { e.preventDefault(); flash('Ventas guardadas solo en esta sesión de prueba.'); }
+  
+async function saveSales(e) {
+  e.preventDefault();
+
+  const total = Number(sales[saleDate] || 0);
+
+  if (!Number.isFinite(total) || total < 0) {
+    flash('Introduce un total válido.');
+    return;
+  }
+
+  const { error } = await supabase
+    .from('ventas')
+    .insert({
+      fecha: saleDate,
+      origen: 'manual',
+      total,
+      registrado_por: session.user.id
+    });
+
+  if (error) {
+    console.error('Error guardando venta:', error);
+    flash('Error al guardar venta: ' + error.message);
+    return;
+  }
+
+  flash('Venta guardada en Supabase.');
+}
+
   function downloadCsv() { const rows=[['Artículo','Unidad','Existencias','Mínimo'],...stockRows.map(a=>[a.name,a.unit,a.stock,a.minimum])]; const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n'); const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'})); const a=document.createElement('a'); a.href=url; a.download='sabor-divino-inventario.csv'; a.click(); URL.revokeObjectURL(url); }
   
 if (checkingAuth) {
