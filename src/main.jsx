@@ -372,6 +372,30 @@ useEffect(() => {
 
   cargarVentas();
 }, [session]);
+  const [paymentReasons, setPaymentReasons] = useState([]);
+
+useEffect(() => {
+  if (!session) {
+    setPaymentReasons([]);
+    return;
+  }
+
+  async function cargarMotivosPago() {
+    const { data, error } = await supabase
+      .from('motivos_pago')
+      .select('id, nombre')
+      .order('nombre');
+
+    if (error) {
+      console.error('Error cargando motivos:', error);
+      return;
+    }
+
+    setPaymentReasons(data || []);
+  }
+
+  cargarMotivosPago();
+}, [session]);
   const [search, setSearch] = useState('');
   const [mobileNav, setMobileNav] = useState(false);
   const [role, setRole] = useState('Administrador');
