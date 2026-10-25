@@ -230,6 +230,34 @@ useEffect(() => {
 }, [session]);
 
   const [payments, setPayments] = useState([]);
+  useEffect(() => {
+  if (!session) {
+    setPayments([]);
+    return;
+  }
+
+  async function cargarPagos() {
+    const { data, error } = await supabase
+      .from('pagos')
+      .select('id, motivo_id, descripcion, monto, fecha')
+      .order('fecha', { ascending: false });
+
+    if (error) {
+      console.error('Error cargando pagos:', error);
+      return;
+    }
+
+    setPayments(data.map(p => ({
+      id: p.id,
+      reason: p.motivo_id,
+      description: p.descripcion,
+      amount: Number(p.monto),
+      date: p.fecha
+    })));
+  }
+
+  cargarPagos();
+}, [session]);
   const [dishes, setDishes] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   useEffect(() => {
