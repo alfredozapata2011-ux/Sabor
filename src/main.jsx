@@ -239,6 +239,7 @@ useEffect(() => {
   }
 
   async function cargarProveedores() {
+    if (!session) return;
     const { data, error } = await supabase
       .from('proveedores')
       .select('id, nombre')
