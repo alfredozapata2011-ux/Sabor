@@ -511,7 +511,6 @@ async function addPayment(e) {
   e.preventDefault();
 
   if (!paymentForm.reason || !paymentForm.amount) return;
-  const { data: motivo, error: motivoError } = await supabase
   
 const nombreMotivo = paymentForm.reason.trim();
 
