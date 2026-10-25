@@ -512,10 +512,26 @@ async function addPayment(e) {
 
   if (!paymentForm.reason || !paymentForm.amount) return;
   const { data: motivo, error: motivoError } = await supabase
+  
+const nombreMotivo = paymentForm.reason.trim();
+
+let { data: motivo, error: motivoError } = await supabase
   .from('motivos_pago')
   .select('id')
-  .ilike('nombre', paymentForm.reason.trim())
-  .single();
+  .ilike('nombre', nombreMotivo)
+  .maybeSingle();
+
+if (!motivo && !motivoError) {
+  const resultado = await supabase
+    .from('motivos_pago')
+    .insert({ nombre: nombreMotivo })
+    .select('id')
+    .single();
+
+  motivo = resultado.data;
+  motivoError = resultado.error;
+}
+
 
 if (motivoError) {
   flash('No se encontró el motivo del pago.');
