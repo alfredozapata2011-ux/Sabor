@@ -337,6 +337,29 @@ useEffect(() => {
   const [dishForm, setDishForm] = useState({ name:'', price:'' });
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0,10));
   const [sales, setSales] = useState({});
+  useEffect(() => {
+  if (!session) {
+    setSales({});
+    return;
+  }
+
+  async function cargarVentas() {
+    const { data, error } = await supabase
+      .from('ventas')
+      .select('fecha, total')
+      .eq('origen', 'manual')
+      .order('fecha', { ascending: false });
+
+    if (error) {
+      console.error('Error cargando ventas:', error);
+      return;
+    }
+
+    console.log('Ventas recuperadas:', data);
+  }
+
+  cargarVentas();
+}, [session]);
   const [search, setSearch] = useState('');
   const [mobileNav, setMobileNav] = useState(false);
   const [role, setRole] = useState('Administrador');
