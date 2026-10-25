@@ -447,7 +447,7 @@ async function addPayment(e) {
   const { data: motivo, error: motivoError } = await supabase
   .from('motivos_pago')
   .select('id')
-  .eq('nombre', paymentForm.reason)
+  .ilike('nombre', paymentForm.reason.trim())
   .single();
 
 if (motivoError) {
