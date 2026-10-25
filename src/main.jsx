@@ -232,6 +232,33 @@ useEffect(() => {
   const [payments, setPayments] = useState([]);
   const [dishes, setDishes] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  useEffect(() => {
+  if (!session) {
+    setSuppliers([]);
+    return;
+  }
+
+  async function cargarProveedores() {
+    const { data, error } = await supabase
+      .from('proveedores')
+      .select('id, nombre')
+      .order('nombre');
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setSuppliers(
+      (data || []).map(p => ({
+        id: p.id,
+        name: p.nombre
+      }))
+    );
+  }
+
+  cargarProveedores();
+}, [session]);
   const [users, setUsers] = useState([{id:1,name:'Administrador principal',role:'Administrador'}]);
   const [toast, setToast] = useState('');
   const [articleForm, setArticleForm] = useState({ name:'', unit:'lb', minimum:'0' });
@@ -413,7 +440,32 @@ async function addPurchase(e) {
 
   function addPayment(e) { e.preventDefault(); if(!paymentForm.reason || !paymentForm.amount) return; setPayments([...payments,{...paymentForm,id:Date.now(),amount:Number(paymentForm.amount)}]); setPaymentForm({...paymentForm,amount:'',description:''}); flash('Pago añadido en esta sesión.'); }
   function addDish(e) { e.preventDefault(); if(!dishForm.name.trim())return; setDishes([...dishes,{...dishForm,id:Date.now(),price:Number(dishForm.price)||0,recipe:[]}]); setDishForm({name:'',price:''}); flash('Plato añadido en esta sesión.'); }
-  function addSupplier(e) { e.preventDefault(); if(!supplierForm.trim())return; setSuppliers([...suppliers,{id:Date.now(),name:supplierForm.trim()}]); setSupplierForm(''); flash('Proveedor añadido en esta sesión.'); }
+  async function addSupplier(e) {
+  e.preventDefault();
+
+  const nombre = supplierForm.trim();
+  if (!nombre) return;
+
+  const { data, error } = await supabase
+    .from('proveedores')
+    .insert({ nombre })
+    .select('id, nombre')
+    .single();
+
+  if (error) {
+    console.error(error);
+    flash('Error al guardar proveedor: ' + error.message);
+    return;
+  }
+
+  setSuppliers(prev => [...prev, {
+    id: data.id,
+    name: data.nombre
+  }]);
+
+  setSupplierForm('');
+  flash('Proveedor guardado en Supabase.');
+}
   function addUser(e) { e.preventDefault(); if(!userForm.name.trim())return; setUsers([...users,{id:Date.now(),...userForm}]); setUserForm({name:'',role:'Usuario simple'}); flash('Usuario de demostración añadido. El acceso real requiere Supabase.'); }
   function saveSales(e) { e.preventDefault(); flash('Ventas guardadas solo en esta sesión de prueba.'); }
   function downloadCsv() { const rows=[['Artículo','Unidad','Existencias','Mínimo'],...stockRows.map(a=>[a.name,a.unit,a.stock,a.minimum])]; const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n'); const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'})); const a=document.createElement('a'); a.href=url; a.download='sabor-divino-inventario.csv'; a.click(); URL.revokeObjectURL(url); }
