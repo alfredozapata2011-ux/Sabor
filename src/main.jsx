@@ -344,19 +344,31 @@ useEffect(() => {
   }
 
   async function cargarVentas() {
-    const { data, error } = await supabase
-      .from('ventas')
-      .select('fecha, total')
-      .eq('origen', 'manual')
-      .order('fecha', { ascending: false });
+  const { data, error } = await supabase
+    .from('ventas')
+    .select('id, fecha, total, venta_detalles(plato_id, cantidad, precio_unitario)')
+    .eq('origen', 'manual')
+    .order('fecha', { ascending: false });
 
-    if (error) {
-      console.error('Error cargando ventas:', error);
-      return;
-    }
-
-    console.log('Ventas recuperadas:', data);
+  if (error) {
+    console.error('Error cargando ventas:', error);
+    return;
   }
+
+  const ventasCargadas = {};
+
+  (data || []).forEach(venta => {
+    (venta.venta_detalles || []).forEach(detalle => {
+      ventasCargadas[detalle.plato_id] = {
+        qty: Number(detalle.cantidad),
+        price: Number(detalle.precio_unitario),
+        date: venta.fecha
+      };
+    });
+  });
+
+  setSales(ventasCargadas);
+}
 
   cargarVentas();
 }, [session]);
