@@ -312,9 +312,10 @@ useEffect(() => {
       .order('nombre');
 
     if (error) {
-      console.error(error);
-      return;
-    }
+  console.error('Error cargando proveedores:', error);
+  flash('Error proveedores: ' + error.message);
+  return;
+}
 
     setSuppliers(
       (data || []).map(p => ({
