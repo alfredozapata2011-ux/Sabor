@@ -174,6 +174,61 @@ const [loadingArticles, setLoadingArticles] = useState(true);
   };
 }, [session]);
   const [purchases, setPurchases] = useState([]);
+  
+useEffect(() => {
+  if (!session) {
+    setPurchases([]);
+    return;
+  }
+
+  let active = true;
+
+  async function cargarCompras() {
+    const { data, error } = await supabase
+      .from('compras')
+      .select(`
+        id,
+        articulo_id,
+        cantidad,
+        precio_original,
+        tipo_impuesto,
+        tasa_impuesto,
+        monto_impuesto,
+        total,
+        fecha,
+        proveedor_id,
+        articulos(nombre)
+      `)
+      .order('fecha', { ascending: false });
+
+    if (!active) return;
+
+    if (error) {
+      console.error('Error cargando compras:', error);
+      flash('No se pudieron cargar las compras.');
+      return;
+    }
+
+    setPurchases((data || []).map(p => ({
+      id: p.id,
+      article: p.articulos?.nombre || 'Artículo no disponible',
+      quantity: Number(p.cantidad),
+      price: Number(p.precio_original),
+      tax: Number(p.monto_impuesto || 0),
+      total: Number(p.total || 0),
+      date: p.fecha,
+      taxRate: Number(p.tasa_impuesto || 0),
+      taxMode: p.tipo_impuesto
+    })));
+  }
+
+  cargarCompras();
+
+  return () => {
+    active = false;
+  };
+}, [session]);
+
   const [payments, setPayments] = useState([]);
   const [dishes, setDishes] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
