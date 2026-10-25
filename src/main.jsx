@@ -439,7 +439,47 @@ async function addPurchase(e) {
 
 
 
-  function addPayment(e) { e.preventDefault(); if(!paymentForm.reason || !paymentForm.amount) return; setPayments([...payments,{...paymentForm,id:Date.now(),amount:Number(paymentForm.amount)}]); setPaymentForm({...paymentForm,amount:'',description:''}); flash('Pago añadido en esta sesión.'); }
+  
+async function addPayment(e) {
+  e.preventDefault();
+
+  if (!paymentForm.reason || !paymentForm.amount) return;
+
+  const { data, error } = await supabase
+    .from('pagos')
+    .insert({
+      motivo_id: paymentForm.reason,
+      descripcion: paymentForm.description || '',
+      monto: Number(paymentForm.amount),
+      fecha: new Date().toLocaleDateString('en-CA'),
+      registrado_por: session.user.id
+    })
+    .select('id, motivo_id, descripcion, monto, fecha')
+    .single();
+
+  if (error) {
+    console.error(error);
+    flash('Error al guardar pago: ' + error.message);
+    return;
+  }
+
+  setPayments(prev => [...prev, {
+    id: data.id,
+    reason: data.motivo_id,
+    description: data.descripcion,
+    amount: Number(data.monto),
+    date: data.fecha
+  }]);
+
+  setPaymentForm(prev => ({
+    ...prev,
+    amount: '',
+    description: ''
+  }));
+
+  flash('Pago guardado en Supabase.');
+}
+
   function addDish(e) { e.preventDefault(); if(!dishForm.name.trim())return; setDishes([...dishes,{...dishForm,id:Date.now(),price:Number(dishForm.price)||0,recipe:[]}]); setDishForm({name:'',price:''}); flash('Plato añadido en esta sesión.'); }
   async function addSupplier(e) {
   e.preventDefault();
