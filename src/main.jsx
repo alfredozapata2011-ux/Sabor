@@ -604,7 +604,7 @@ if (!motivo) {
 
   setPayments(prev => [...prev, {
     id: data.id,
-    reason: nombreMotivo,
+    reason: motivo.nombre,
     description: data.descripcion,
     amount: Number(data.monto),
     date: data.fecha
