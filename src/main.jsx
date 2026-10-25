@@ -667,19 +667,45 @@ async function saveSales(e) {
     return;
   }
 
-  const { error } = await supabase
-    .from('ventas')
-    .insert({
-      fecha: saleDate,
-      origen: 'manual',
-      total,
-      registrado_por: session.user.id
-    });
+  const { data: venta, error } = await supabase
+  .from('ventas')
+  .insert({
+    fecha: saleDate,
+    origen: 'manual',
+    total,
+    registrado_por: session.user.id
+  })
+  .select('id')
+  .single();
 
-  if (error) {
-    console.error('Error guardando venta:', error);
-    flash('Error al guardar venta: ' + error.message);
+if (error) {
+  console.error('Error guardando venta:', error);
+  flash('Error al guardar venta: ' + error.message);
+  return;
+}
+
+const detalles = dishes
+  .filter(d => Number(sales[d.id]?.qty || 0) > 0)
+  .map(d => ({
+    venta_id: venta.id,
+    plato_id: d.id,
+    cantidad: Number(sales[d.id].qty),
+    precio_unitario: Number(d.price),
+    subtotal: Number(sales[d.id].qty) * Number(d.price)
+  }));
+  
+
+if (detalles.length > 0) {
+  const { error: detalleError } = await supabase
+    .from('venta_detalles')
+    .insert(detalles);
+
+  if (detalleError) {
+    console.error(detalleError);
+    flash('Venta creada, pero hubo un error al guardar los platos: ' + detalleError.message);
     return;
+  }
+
   }
 
   flash('Venta guardada en Supabase.');
