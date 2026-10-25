@@ -444,11 +444,21 @@ async function addPayment(e) {
   e.preventDefault();
 
   if (!paymentForm.reason || !paymentForm.amount) return;
+  const { data: motivo, error: motivoError } = await supabase
+  .from('motivos_pago')
+  .select('id')
+  .eq('nombre', paymentForm.reason)
+  .single();
+
+if (motivoError) {
+  flash('No se encontró el motivo del pago.');
+  return;
+}
 
   const { data, error } = await supabase
     .from('pagos')
     .insert({
-      motivo_id: paymentForm.reason,
+      motivo_id: motivo.id,
       descripcion: paymentForm.description || '',
       monto: Number(paymentForm.amount),
       fecha: new Date().toLocaleDateString('en-CA'),
