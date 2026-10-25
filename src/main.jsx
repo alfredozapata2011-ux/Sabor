@@ -518,7 +518,40 @@ if (motivoError) {
   flash('Pago guardado en Supabase.');
 }
 
-  function addDish(e) { e.preventDefault(); if(!dishForm.name.trim())return; setDishes([...dishes,{...dishForm,id:Date.now(),price:Number(dishForm.price)||0,recipe:[]}]); setDishForm({name:'',price:''}); flash('Plato añadido en esta sesión.'); }
+  
+async function addDish(e) {
+  e.preventDefault();
+
+  const nombre = dishForm.name.trim();
+  if (!nombre) return;
+
+  const { data, error } = await supabase
+    .from('menu')
+    .insert({
+      nombre: nombre,
+      precio: Number(dishForm.price) || 0,
+      disponible: true
+    })
+    .select('id, nombre, precio')
+    .single();
+
+  if (error) {
+    console.error(error);
+    flash('Error al guardar plato: ' + error.message);
+    return;
+  }
+
+  setDishes(prev => [...prev, {
+    id: data.id,
+    name: data.nombre,
+    price: Number(data.precio),
+    recipe: []
+  }]);
+
+  setDishForm({ name: '', price: '' });
+  flash('Plato guardado en Supabase.');
+}
+
   async function addSupplier(e) {
   e.preventDefault();
 
