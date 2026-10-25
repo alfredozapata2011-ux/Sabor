@@ -239,7 +239,7 @@ useEffect(() => {
   async function cargarPagos() {
     const { data, error } = await supabase
       .from('pagos')
-      .select('id, motivo_id, descripcion, monto, fecha')
+      .select('id, motivo_id, descripcion, monto, fecha, motivos_pago(nombre)')
       .order('fecha', { ascending: false });
 
     if (error) {
@@ -249,7 +249,7 @@ useEffect(() => {
 
     setPayments(data.map(p => ({
       id: p.id,
-      reason: p.motivo_id,
+      reason: p.motivos_pago?.nombre || '',
       description: p.descripcion,
       amount: Number(p.monto),
       date: p.fecha
@@ -592,7 +592,7 @@ if (motivoError) {
 
   setPayments(prev => [...prev, {
     id: data.id,
-    reason: data.motivo_id,
+    reason: nombreMotivo,
     description: data.descripcion,
     amount: Number(data.monto),
     date: data.fecha
