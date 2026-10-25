@@ -258,7 +258,104 @@ async function addArticle(e) {
   });
 }
 
-  function addPurchase(e) { e.preventDefault(); if (!purchaseForm.article || !purchaseForm.quantity || !purchaseForm.price) return; const base=Number(purchaseForm.price), rate=Number(purchaseForm.taxRate)||0; let tax=0,total=base; if(purchaseForm.taxMode==='extra'){tax=base*rate/100;total=base+tax;} else if(purchaseForm.taxMode==='included'){tax=base-(base/(1+rate/100));} setPurchases([...purchases,{...purchaseForm,id:Date.now(),quantity:Number(purchaseForm.quantity),price:base,tax,total}]); setPurchaseForm({...purchaseForm,quantity:'',price:''}); flash('Compra añadida en esta sesión.'); }
+  
+async function addPurchase(e) {
+  e.preventDefault();
+
+  if (
+    !purchaseForm.article ||
+    !purchaseForm.quantity ||
+    !purchaseForm.price
+  ) return;
+
+  const articulo = articles.find(
+    a => a.name === purchaseForm.article
+  );
+
+  if (!articulo) {
+    flash('No se encontró el artículo en Supabase.');
+    return;
+  }
+
+  const cantidad = Number(purchaseForm.quantity);
+  const base = Number(purchaseForm.price);
+  const rate = Number(purchaseForm.taxRate) || 0;
+
+  if (
+    !Number.isFinite(cantidad) ||
+    cantidad <= 0 ||
+    !Number.isFinite(base) ||
+    base < 0 ||
+    rate < 0
+  ) {
+    flash('Revisa la cantidad, precio e impuesto.');
+    return;
+  }
+
+  let tax = 0;
+  let total = base;
+
+  if (purchaseForm.taxMode === 'extra') {
+    tax = base * rate / 100;
+    total = base + tax;
+  } else if (purchaseForm.taxMode === 'included') {
+    tax = base - base / (1 + rate / 100);
+  }
+
+  const tipoImpuesto = {
+    no: 'sin_impuesto',
+    extra: 'sin_incluir',
+    included: 'incluido'
+  }[purchaseForm.taxMode];
+
+  const { data: usuarioData } =
+    await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from('compras')
+    .insert({
+      articulo_id: articulo.id,
+      cantidad,
+      precio_original: base,
+      tipo_impuesto: tipoImpuesto,
+      tasa_impuesto: rate,
+      monto_impuesto: tax,
+      total,
+      fecha: purchaseForm.date,
+      registrado_por: usuarioData?.user?.id ?? null
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('Error guardando compra:', error);
+    flash('No se pudo guardar la compra: ' + error.message);
+    return;
+  }
+
+  setPurchases(prev => [
+    ...prev,
+    {
+      ...purchaseForm,
+      id: data.id,
+      quantity: cantidad,
+      price: base,
+      tax,
+      total
+    }
+  ]);
+
+  setPurchaseForm(prev => ({
+    ...prev,
+    quantity: '',
+    price: ''
+  }));
+
+  flash('Compra guardada en Supabase.');
+}
+
+
+
   function addPayment(e) { e.preventDefault(); if(!paymentForm.reason || !paymentForm.amount) return; setPayments([...payments,{...paymentForm,id:Date.now(),amount:Number(paymentForm.amount)}]); setPaymentForm({...paymentForm,amount:'',description:''}); flash('Pago añadido en esta sesión.'); }
   function addDish(e) { e.preventDefault(); if(!dishForm.name.trim())return; setDishes([...dishes,{...dishForm,id:Date.now(),price:Number(dishForm.price)||0,recipe:[]}]); setDishForm({name:'',price:''}); flash('Plato añadido en esta sesión.'); }
   function addSupplier(e) { e.preventDefault(); if(!supplierForm.trim())return; setSuppliers([...suppliers,{id:Date.now(),name:supplierForm.trim()}]); setSupplierForm(''); flash('Proveedor añadido en esta sesión.'); }
