@@ -654,7 +654,36 @@ async function addDish(e) {
   setDishForm({ name: '', price: '' });
   flash('Plato guardado en Supabase.');
 }
+async function saveRecipe(dishId, ingredients) {
+  const { error: deleteError } = await supabase
+    .from('menu_ingredientes')
+    .delete()
+    .eq('menu_id', dishId);
 
+  if (deleteError) {
+    flash('Error al actualizar receta: ' + deleteError.message);
+    return;
+  }
+
+  if (ingredients.length > 0) {
+    const { error } = await supabase
+      .from('menu_ingredientes')
+      .insert(
+        ingredients.map(item => ({
+          menu_id: dishId,
+          articulo_id: item.articleId,
+          cantidad: Number(item.quantity)
+        }))
+      );
+
+    if (error) {
+      flash('Error al guardar ingredientes: ' + error.message);
+      return;
+    }
+  }
+
+  flash('Receta guardada correctamente.');
+}
   async function addSupplier(e) {
   e.preventDefault();
 
