@@ -130,6 +130,8 @@ function App() {
   const [section, setSection] = useState('inicio');
   const [articles, setArticles] = useState([]);
 const [loadingArticles, setLoadingArticles] = useState(true);
+  const [recipeDishId, setRecipeDishId] = useState('');
+const [recipeIngredients, setRecipeIngredients] = useState([]);
   useEffect(() => {
   if (!session) {
     setArticles([]);
