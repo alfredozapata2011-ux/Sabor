@@ -133,6 +133,42 @@ const [loadingArticles, setLoadingArticles] = useState(true);
   const [recipeDishId, setRecipeDishId] = useState('');
 const [recipeIngredients, setRecipeIngredients] = useState([]);
   useEffect(() => {
+  if (!session || !recipeDishId) {
+    setRecipeIngredients([]);
+    return;
+  }
+
+  let active = true;
+
+  async function cargarReceta() {
+    const { data, error } = await supabase
+      .from('menu_ingredientes')
+      .select('articulo_id, cantidad')
+      .eq('plato_id', recipeDishId);
+
+    if (!active) return;
+
+    if (error) {
+      console.error('Error al cargar receta:', error);
+      flash('Error al cargar los ingredientes.');
+      return;
+    }
+
+    setRecipeIngredients(
+      (data || []).map(item => ({
+        articleId: item.articulo_id,
+        quantity: String(item.cantidad)
+      }))
+    );
+  }
+
+  cargarReceta();
+
+  return () => {
+    active = false;
+  };
+}, [session, recipeDishId]);
+  useEffect(() => {
   if (!session) {
     setArticles([]);
     setLoadingArticles(false);
