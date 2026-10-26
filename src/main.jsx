@@ -658,7 +658,7 @@ async function saveRecipe(dishId, ingredients) {
   const { error: deleteError } = await supabase
     .from('menu_ingredientes')
     .delete()
-    .eq('menu_id', dishId);
+    .eq('plato_id', dishId);
 
   if (deleteError) {
     flash('Error al actualizar receta: ' + deleteError.message);
@@ -670,7 +670,7 @@ async function saveRecipe(dishId, ingredients) {
       .from('menu_ingredientes')
       .insert(
         ingredients.map(item => ({
-          menu_id: dishId,
+          plato_id: dishId,
           articulo_id: item.articleId,
           cantidad: Number(item.quantity)
         }))
