@@ -834,6 +834,73 @@ if (!session) {
         {section==='pagos' && <div className="two-col"><div className="panel"><div className="panel-heading"><div><h3>Registrar pago</h3><p>Guarda un gasto o pago del negocio.</p></div></div><form className="form-grid" onSubmit={addPayment}><Field label="Motivo del pago"><select required value={paymentForm.reason} onChange={e=>setPaymentForm({...paymentForm,reason:e.target.value})}><option value="">Selecciona motivo</option>{['Renta','Servicios','Nómina','Transporte','Mantenimiento','Suministros','Otro'].map(x=><option key={x}>{x}</option>)}</select></Field><Field label="Descripción"><input value={paymentForm.description} onChange={e=>setPaymentForm({...paymentForm,description:e.target.value})} placeholder="Detalles opcionales"/></Field><Field label="Fecha"><input type="date" value={paymentForm.date} onChange={e=>setPaymentForm({...paymentForm,date:e.target.value})}/></Field><Field label="Importe ($)"><input required type="number" min="0" step="0.01" value={paymentForm.amount} onChange={e=>setPaymentForm({...paymentForm,amount:e.target.value})}/></Field><button className="primary-button full" type="submit">Guardar pago de prueba</button></form></div><div className="panel"><div className="panel-heading"><div><h3>Pagos recientes</h3><p>{payments.length} registros de esta sesión</p></div></div><div className="simple-list">{payments.map(p=><div className="list-line" key={p.id}><div><b>{p.reason}</b><small>{p.date} · {p.description}</small></div><strong>{money(p.amount)}</strong></div>)}{!payments.length&&<Empty text="Todavía no hay pagos registrados."/>}</div></div></div>}
         {section==='ventas' && <div className="panel"><div className="panel-heading"><div><h3>Ventas por día</h3><p>Cuando conectemos Square, importaremos las ventas automáticamente cada noche.</p></div><span className="status-pill amber">Square sin conectar</span></div><Field label="Día de ventas"><input type="date" value={saleDate} onChange={e=>setSaleDate(e.target.value)}/></Field><div className="table-wrap top-space"><table><thead><tr><th>Plato</th><th>Precio</th><th>Cantidad vendida</th><th>Total</th></tr></thead><tbody>{dishes.map(d=><tr key={d.id}><td>{d.name}</td><td>{money(d.price)}</td><td><input className="qty-input" type="number" min="0" value={sales[d.id]?.qty||0} onChange={e=>setSales({...sales,[d.id]:{qty:Number(e.target.value),price:d.price,date:saleDate}})}/></td><td>{money((sales[d.id]?.qty||0)*d.price)}</td></tr>)}</tbody></table>{!dishes.length&&<Empty text="Primero añade los platos desde la sección Menú y recetas."/>}</div><div className="table-footer"><span>Total de ventas mostradas</span><strong>{money(dishes.reduce((s,d)=>s+(sales[d.id]?.qty||0)*d.price,0))}</strong></div><button className="primary-button" onClick={saveSales}>Guardar ventas en Supabase</button></div>}
         {section==='menu' && <div className="two-col"><div className="panel"><div className="panel-heading"><div><h3>Añadir plato</h3><p>El menú contiene platos y sus recetas.</p></div></div><form className="form-grid" onSubmit={addDish}><Field label="Nombre del plato"><input required value={dishForm.name} onChange={e=>setDishForm({...dishForm,name:e.target.value})} placeholder="Ej. Pabellón criollo"/></Field><Field label="Precio de venta ($)"><input type="number" min="0" step="0.01" value={dishForm.price} onChange={e=>setDishForm({...dishForm,price:e.target.value})} required/></Field><button className="primary-button full" type="submit">＋ Añadir plato</button></form><div className="notice inline-notice"><span>i</span><p>El editor de recetas para asignar ingredientes y cantidades se completará en la siguiente fase.</p></div></div><div className="panel"><div className="panel-heading"><div><h3>Menú</h3><p>{dishes.length} platos añadidos</p></div></div><div className="simple-list">{dishes.map(d=><div className="list-line" key={d.id}><div><b>{d.name}</b><small>Receta pendiente de configurar</small></div><strong>{money(d.price)}</strong></div>)}{!dishes.length&&<Empty text="Todavía no hay platos. Tú podrás cargarlos desde aquí."/>}</div></div></div>}
+ {section === 'menu' && (
+  <div className="panel">
+    <h3>Configurar recetas</h3>
+    <p>Selecciona un plato para asignarle ingredientes.</p>
+
+    <select
+      value={recipeDishId}
+      onChange={e => setRecipeDishId(e.target.value)}
+    >
+      <option value="">Selecciona un plato</option>
+      {dishes.map(d => (
+        <option key={d.id} value={d.id}>{d.name}</option>
+      ))}
+    </select>
+
+    {recipeDishId && (
+      <>
+        <h4>Ingredientes</h4>
+        {recipeIngredients.map((item, index) => (
+          <div key={index} className="field-pair">
+            <select
+              value={item.articleId}
+              onChange={e => setRecipeIngredients(prev =>
+                prev.map((x, i) => i === index
+                  ? { ...x, articleId: e.target.value }
+                  : x
+                )
+              )}
+            >
+              <option value="">Selecciona un artículo</option>
+              {articles.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min="0.001"
+              step="any"
+              placeholder="Cantidad"
+              value={item.quantity}
+              onChange={e => setRecipeIngredients(prev =>
+                prev.map((x, i) => i === index
+                  ? { ...x, quantity: e.target.value }
+                  : x
+                )
+              )}
+            />
+          </div>
+        ))}
+
+        <button type="button" onClick={() =>
+          setRecipeIngredients(prev => [
+            ...prev, { articleId: '', quantity: '' }
+          ])
+        }>
+          + Añadir ingrediente
+        </button>
+
+        <button type="button" className="primary-button" onClick={() =>
+          saveRecipe(recipeDishId, recipeIngredients)
+        }>
+          Guardar receta
+        </button>
+      </>
+    )}
+  </div>
+)}       
         {section==='proveedores' && <div className="two-col"><div className="panel"><div className="panel-heading"><div><h3>Nuevo proveedor</h3><p>Guarda tus proveedores habituales.</p></div></div><form className="form-grid" onSubmit={addSupplier}><Field label="Nombre del proveedor"><input required value={supplierForm} onChange={e=>setSupplierForm(e.target.value)} placeholder="Nombre comercial"/></Field><button className="primary-button full">＋ Añadir proveedor</button></form></div><div className="panel"><div className="panel-heading"><div><h3>Proveedores</h3><p>{suppliers.length} registrados en esta sesión</p></div></div><div className="simple-list">{suppliers.map(s=><div className="list-line" key={s.id}><b>{s.name}</b><button className="text-button" onClick={()=>setSuppliers(suppliers.filter(x=>x.id!==s.id))}>Eliminar</button></div>)}{!suppliers.length&&<Empty text="Aquí aparecerán los proveedores que añadas."/>}</div></div></div>}
         {section==='usuarios' && <div className="two-col"><div className="panel"><div className="panel-heading"><div><h3>Crear usuario</h3><p>Selecciona el nivel de acceso.</p></div></div><form className="form-grid" onSubmit={addUser}><Field label="Nombre"><input required value={userForm.name} onChange={e=>setUserForm({...userForm,name:e.target.value})} placeholder="Nombre del trabajador"/></Field><Field label="Tipo de cuenta"><select value={userForm.role} onChange={e=>setUserForm({...userForm,role:e.target.value})}><option>Usuario simple</option><option>Administrador</option></select></Field><div className="notice inline-notice"><span>!</span><p>Este formulario es demostrativo. No crea credenciales seguras ni cuentas reales hasta configurar Supabase Auth.</p></div><button className="primary-button full">Añadir usuario de prueba</button></form></div><div className="panel"><div className="panel-heading"><div><h3>Usuarios</h3><p>Vista de demostración</p></div></div><div className="simple-list">{users.map(u=><div className="list-line" key={u.id}><div><b>{u.name}</b><small>{u.role}</small></div><span className="role-pill">{u.role==='Administrador'?'ADMIN':'USUARIO'}</span></div>)}</div></div></div>}
         {section==='reportes' && <div className="report-grid"><Report icon="▦" title="Inventario actual" desc="Descarga un archivo CSV con los artículos de prueba." button="Exportar inventario" onClick={downloadCsv}/><Report icon="＋" title="Compras" desc="Resumen de las compras capturadas en esta sesión." button="Descargar CSV" onClick={()=>downloadTable('compras.csv',[['Fecha','Artículo','Cantidad','Precio','Impuesto','Total'],...purchases.map(p=>[p.date,p.article,p.quantity,p.price,p.tax,p.total])])}/><Report icon="$" title="Pagos" desc="Resumen de pagos capturados en esta sesión." button="Descargar CSV" onClick={()=>downloadTable('pagos.csv',[['Fecha','Motivo','Descripción','Importe'],...payments.map(p=>[p.date,p.reason,p.description,p.amount])])}/><Report icon="↗" title="Ventas por día" desc="Exporta las cantidades ingresadas en esta sesión." button="Descargar CSV" onClick={()=>downloadTable('ventas.csv',[['Plato','Cantidad','Precio','Total'],...dishes.map(d=>[d.name,sales[d.id]?.qty||0,d.price,(sales[d.id]?.qty||0)*d.price])])}/></div>}
