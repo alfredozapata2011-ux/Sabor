@@ -365,7 +365,45 @@ useEffect(() => {
 
   cargarProveedores();
 }, [session]);
-  const [users, setUsers] = useState([{id:1,name:'Administrador principal',role:'Administrador'}]);
+  const [users, setUsers] = useState([]);
+
+useEffect(() => {
+  if (!session) {
+    setUsers([]);
+    return;
+  }
+
+  let active = true;
+
+  async function cargarUsuarios() {
+    const { data, error } = await supabase
+      .from('perfiles')
+      .select('id, nombre, rol')
+      .order('creado_en', { ascending: true });
+
+    if (!active) return;
+
+    if (error) {
+      console.error('Error cargando usuarios:', error);
+      flash('No se pudieron cargar los usuarios.');
+      return;
+    }
+
+    setUsers((data || []).map(u => ({
+      id: u.id,
+      name: u.nombre || 'Usuario sin nombre',
+      role: u.rol === 'administrador'
+        ? 'Administrador'
+        : 'Usuario simple'
+    })));
+  }
+
+  cargarUsuarios();
+
+  return () => {
+    active = false;
+  };
+}, [session]);
   const [toast, setToast] = useState('');
   const [articleForm, setArticleForm] = useState({ name:'', unit:'lb', minimum:'0' });
   const [supplierForm, setSupplierForm] = useState('');
@@ -953,6 +991,6 @@ function Empty({text}){return <div className="empty"><span>▤</span><p>{text}</
 function ArticleTable({rows,search,setSearch,onDelete}){const filtered=rows.filter(a=>a.name.toLowerCase().includes(search.toLowerCase()));return <><div className="table-tools"><input placeholder="Buscar artículo..." value={search} onChange={e=>setSearch(e.target.value)}/><span>{filtered.length} artículos</span></div><div className="table-wrap"><table><thead><tr><th>Artículo</th><th>Unidad</th><th>Existencias</th><th>Mínimo</th>{onDelete&&<th></th>}</tr></thead><tbody>{filtered.map(a=><tr key={a.id}><td><b>{a.name}</b></td><td>{a.unit}</td><td><span className={`stock-pill ${a.stock<=a.minimum?'low':''}`}>{a.stock}</span></td><td>{a.minimum}</td>{onDelete&&<td><button className="text-button" onClick={()=>onDelete(a.id)}>Eliminar</button></td>}</tr>)}</tbody></table>{!filtered.length&&<Empty text="No hay artículos que mostrar. Añade uno para empezar."/>}</div></>}
 function Report({icon,title,desc,button,onClick}){return <div className="panel report-card"><span className="report-icon">{icon}</span><h3>{title}</h3><p>{desc}</p><button className="outline-button" onClick={onClick}>{button} ↓</button></div>}
 function money(value){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(value)||0)}
-function downloadTable(filename,rows){const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url)}
+function downloadTable(filename,rows){const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url)}l
 
 createRoot(document.getElementById('root')).render(<App/>);
