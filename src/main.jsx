@@ -335,7 +335,7 @@ useEffect(() => {
   };
 }, [session]);
 
-  
+  const [suppliers, setSuppliers] = useState([]);
   useEffect(() => {
   if (!session) {
     setSuppliers([]);
